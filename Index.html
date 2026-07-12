@@ -1,0 +1,1711 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tiny Tanks Arena - Online Multiplayer Pro</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #0b0f19;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        canvas {
+            display: block;
+            background: #0f172a;
+        }
+        /* Mobile Joystick Styles */
+        .joystick-container {
+            position: absolute;
+            bottom: 40px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            touch-action: none;
+            display: none;
+            z-index: 45;
+            backdrop-filter: blur(4px);
+        }
+        #left-joystick { left: 40px; }
+        #right-joystick { right: 40px; }
+        .joystick-knob {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            position: absolute;
+            left: 35px;
+            top: 35px;
+            pointer-events: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+            border: 2px solid #ffffff;
+        }
+    </style>
+</head>
+<body class="relative h-screen w-screen overflow-hidden text-white">
+
+    <!-- 1. Lobby/Start Screen Overlay -->
+    <div id="lobby-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/95 p-4 transition-all duration-300">
+        <div class="max-w-md w-full bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl text-center space-y-6">
+            <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-500 to-red-600 animate-pulse tracking-wider">
+                TINY TANKS ONLINE
+            </h1>
+            <p class="text-slate-400 text-sm">Real-time multiplayer tank arena! Goliyaan deewaron pe bounce hongi aur aapko bhi lag sakti hain!</p>
+
+            <!-- Loading Firebase Status -->
+            <div id="connection-status" class="text-xs bg-slate-950/60 py-2 rounded border border-slate-800 text-amber-400">
+                <i class="fa-solid fa-circle-notch animate-spin mr-2"></i> Server se jud rahe hain...
+            </div>
+
+            <!-- Player Settings -->
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="block text-slate-300 text-sm font-bold mb-1">Apna Naam Likhein:</label>
+                    <input type="text" id="player-name" value="Khatarnak_Khiladi" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-500">
+                </div>
+                <div>
+                    <label class="block text-slate-300 text-sm font-bold mb-1">Tank Ka Rang Chunna:</label>
+                    <div class="flex gap-3 justify-center py-2" id="color-picker">
+                        <button class="w-10 h-10 rounded-full border-4 border-white bg-emerald-500 focus:outline-none transition" data-color="#10b981"></button>
+                        <button class="w-10 h-10 rounded-full border-4 border-transparent bg-amber-500 focus:outline-none transition" data-color="#f59e0b"></button>
+                        <button class="w-10 h-10 rounded-full border-4 border-transparent bg-rose-500 focus:outline-none transition" data-color="#f43f5e"></button>
+                        <button class="w-10 h-10 rounded-full border-4 border-transparent bg-indigo-500 focus:outline-none transition" data-color="#6366f1"></button>
+                        <button class="w-10 h-10 rounded-full border-4 border-transparent bg-purple-500 focus:outline-none transition" data-color="#a855f7"></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start Button -->
+            <button id="start-btn" disabled class="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-all text-lg opacity-50 cursor-not-allowed">
+                Server Se Judne Ka Intezar Karein
+            </button>
+
+            <!-- Instructions -->
+            <div class="border-t border-slate-800 pt-4 text-xs text-slate-400 text-left space-y-2">
+                <p class="font-semibold text-slate-300">Kaise Kheleingey (Desktop):</p>
+                <p><i class="fa-solid fa-keyboard text-orange-400 mr-2"></i><strong>WASD / Arrow Keys:</strong> Chalne ke liye</p>
+                <p><i class="fa-solid fa-mouse text-orange-400 mr-2"></i><strong>Mouse Aim + Click:</strong> Goli chalane ke liye</p>
+                <p class="font-semibold text-slate-300 mt-2">Kaise Kheleingey (Mobile):</p>
+                <p><i class="fa-solid fa-mobile-screen text-orange-400 mr-2"></i><strong>Left Joystick:</strong> Chalne ke liye | <strong>Right Joystick:</strong> Aim aur Shoot</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Game HUD (In-game UI) -->
+    <div id="game-hud" class="absolute inset-0 pointer-events-none hidden z-40 flex flex-col justify-between p-4">
+        <!-- Top Row: Logo, Stats, & Leaderboard -->
+        <div class="flex justify-between items-start w-full">
+            <!-- Health & Score -->
+            <div class="bg-slate-900/90 backdrop-blur border border-slate-700 p-3 rounded-xl flex flex-col gap-1 pointer-events-auto shadow-lg min-w-[200px]">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs text-slate-400 font-bold uppercase">Aapka Tank:</span>
+                    <span id="hud-player-name" class="text-xs text-emerald-400 font-bold">Player</span>
+                </div>
+                <!-- Health Bar -->
+                <div class="w-full bg-slate-800 rounded-full h-4 overflow-hidden relative border border-slate-600">
+                    <div id="hud-health-bar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all duration-100" style="width: 100%;"></div>
+                    <span id="hud-health-text" class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">100/100</span>
+                </div>
+                <!-- Score & Weapon Info -->
+                <div class="flex justify-between items-center text-xs mt-1">
+                    <span>Kills: <strong id="hud-score" class="text-amber-400">0</strong></span>
+                    <span id="hud-weapon" class="text-[10px] bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-slate-300">Asli Goliyaan</span>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="bg-slate-900/90 backdrop-blur border border-slate-700 p-3 rounded-xl pointer-events-auto shadow-lg w-52">
+                <h3 class="text-xs font-bold text-center border-b border-slate-700 pb-1 mb-2 text-amber-400 tracking-wider">
+                    <i class="fa-solid fa-users mr-1"></i> LIVE SCOREBOARD
+                </h3>
+                <ol id="leaderboard-list" class="text-xs space-y-1 font-mono">
+                    <!-- Dynamic live players loaded here -->
+                </ol>
+            </div>
+        </div>
+
+        <!-- Center Overlay for Emojis/Chat notifications -->
+        <div id="toast-container" class="absolute top-1/4 left-1/2 transform -translate-x-1/2 flex flex-col gap-2 items-center pointer-events-none"></div>
+
+        <!-- Touch Controls UI -->
+        <div class="w-full flex justify-between items-end">
+            <!-- Mobile Chat/Emoji Button -->
+            <div class="pointer-events-auto">
+                <button id="emoji-menu-btn" class="bg-slate-800/90 hover:bg-slate-700 border border-slate-700 w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all">
+                    <i class="fa-regular fa-face-laugh-beam text-xl text-yellow-400"></i>
+                </button>
+                <div id="emoji-picker" class="hidden absolute bottom-20 left-4 bg-slate-900 border border-slate-700 p-2 rounded-xl flex gap-2 shadow-2xl">
+                    <button class="emoji-btn hover:scale-125 transition text-2xl" data-emoji="😎">😎</button>
+                    <button class="emoji-btn hover:scale-125 transition text-2xl" data-emoji="😂">😂</button>
+                    <button class="emoji-btn hover:scale-125 transition text-2xl" data-emoji="😠">😠</button>
+                    <button class="emoji-btn hover:scale-125 transition text-2xl" data-emoji="👑">👑</button>
+                    <button class="emoji-btn hover:scale-125 transition text-2xl" data-emoji="💀">💀</button>
+                </div>
+            </div>
+
+            <!-- Total players indicator -->
+            <div class="bg-slate-900/80 px-3 py-1 rounded-full text-xs text-slate-400 border border-slate-700">
+                Lobby ID: <span id="hud-lobby-id" class="text-white font-mono">Connecting...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Game Over Screen -->
+    <div id="gameover-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/80 p-4 hidden transition-all duration-300">
+        <div class="max-w-sm w-full bg-slate-900 border border-rose-950 rounded-2xl p-6 shadow-2xl text-center space-y-6">
+            <h2 class="text-3xl font-black text-rose-500 tracking-wider">Aap Maar Diye Gaye!</h2>
+            <div class="p-4 bg-slate-950/50 rounded-lg border border-slate-800 space-y-2">
+                <p class="text-slate-400 text-sm">Aapka Safar:</p>
+                <p class="text-xl">Final Kills: <strong id="gameover-score" class="text-amber-400">0</strong></p>
+                <p class="text-sm text-slate-500">Maut Ka Karan: <span id="gameover-cause" class="text-rose-400 font-semibold">Goli</span></p>
+            </div>
+            <button id="respawn-btn" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-all text-lg">
+                Dobara Kheleid (Respawn) <i class="fa-solid fa-rotate-left ml-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile Virtual Joysticks -->
+    <div id="left-joystick" class="joystick-container">
+        <div class="joystick-knob"></div>
+    </div>
+    <div id="right-joystick" class="joystick-container">
+        <div class="joystick-knob"></div>
+    </div>
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration & Integration ---
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'tinytank-multiplayer-v1';
+
+        let user = null;
+        let userId = '';
+
+        // Initial Auth Setup (Strict Rule 3)
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth error:", error);
+            }
+        };
+        initAuth();
+
+        onAuthStateChanged(auth, (u) => {
+            if (u) {
+                user = u;
+                userId = u.uid;
+                // Enable Game Shuru Button as soon as Firebase is ready
+                document.getElementById('connection-status').className = "text-xs bg-emerald-950/60 py-2 rounded border border-emerald-800 text-emerald-400";
+                document.getElementById('connection-status').innerHTML = '<i class="fa-solid fa-circle-check mr-2"></i> Server se jud gaye hain!';
+                const startBtn = document.getElementById('start-btn');
+                startBtn.disabled = false;
+                startBtn.className = "w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-all text-lg cursor-pointer";
+                startBtn.innerText = "Khel Shuru Karein";
+            }
+        });
+
+        // --- Game Setup & Global States ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const lobbyScreen = document.getElementById('lobby-screen');
+        const gameHud = document.getElementById('game-hud');
+        const gameOverScreen = document.getElementById('gameover-screen');
+        
+        let gameState = 'lobby'; 
+        let playerColor = '#10b981'; 
+        let playerName = 'Khatarnak_Khiladi';
+
+        let mapWidth = 2000;
+        let mapHeight = 2000;
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        if (isTouchDevice) {
+            document.getElementById('left-joystick').style.display = 'block';
+            document.getElementById('right-joystick').style.display = 'block';
+        }
+
+        // --- Controls ---
+        const keys = {};
+        window.addEventListener('keydown', (e) => { keys[e.code] = true; });
+        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+        let mouseX = 0;
+        let mouseY = 0;
+        let mouseClicked = false;
+
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        window.addEventListener('mousedown', () => { mouseClicked = true; });
+        window.addEventListener('mouseup', () => { mouseClicked = false; });
+
+        // --- Joysticks ---
+        const leftJoystick = {
+            container: document.getElementById('left-joystick'),
+            knob: document.getElementById('left-joystick').querySelector('.joystick-knob'),
+            active: false,
+            startX: 0,
+            startY: 0,
+            inputX: 0,
+            inputY: 0
+        };
+
+        const rightJoystick = {
+            container: document.getElementById('right-joystick'),
+            knob: document.getElementById('right-joystick').querySelector('.joystick-knob'),
+            active: false,
+            startX: 0,
+            startY: 0,
+            inputX: 0,
+            inputY: 0
+        };
+
+        function setupJoystick(joystickObj, container) {
+            container.addEventListener('touchstart', (e) => {
+                const rect = container.getBoundingClientRect();
+                joystickObj.active = true;
+                joystickObj.startX = rect.left + rect.width / 2;
+                joystickObj.startY = rect.top + rect.height / 2;
+                handleTouchMove(e);
+            }, { passive: true });
+
+            container.addEventListener('touchmove', handleTouchMove, { passive: true });
+
+            container.addEventListener('touchend', () => {
+                joystickObj.active = false;
+                joystickObj.inputX = 0;
+                joystickObj.inputY = 0;
+                joystickObj.knob.style.transform = `translate(0px, 0px)`;
+            }, { passive: true });
+
+            function handleTouchMove(e) {
+                if (!joystickObj.active) return;
+                const touch = Array.from(e.touches).find(t => {
+                    const rect = container.getBoundingClientRect();
+                    return t.clientX >= rect.left && t.clientX <= rect.right &&
+                           t.clientY >= rect.top && t.clientY <= rect.bottom;
+                }) || e.touches[0];
+
+                if (!touch) return;
+
+                let dx = touch.clientX - joystickObj.startX;
+                let dy = touch.clientY - joystickObj.startY;
+                const dist = Math.hypot(dx, dy);
+                const maxDist = 40;
+
+                if (dist > maxDist) {
+                    dx = (dx / dist) * maxDist;
+                    dy = (dy / dist) * maxDist;
+                }
+
+                joystickObj.knob.style.transform = `translate(${dx}px, ${dy}px)`;
+                joystickObj.inputX = dx / maxDist;
+                joystickObj.inputY = dy / maxDist;
+            }
+        }
+
+        setupJoystick(leftJoystick, leftJoystick.container);
+        setupJoystick(rightJoystick, rightJoystick.container);
+
+        // Color Picker
+        const colorPickerBtns = document.querySelectorAll('#color-picker button');
+        colorPickerBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                colorPickerBtns.forEach(b => b.classList.remove('border-white'));
+                colorPickerBtns.forEach(b => b.classList.add('border-transparent'));
+                btn.classList.remove('border-transparent');
+                btn.classList.add('border-white');
+                playerColor = btn.getAttribute('data-color');
+            });
+        });
+
+        // --- Sound Simulation ---
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+        function playSound(type) {
+            try {
+                if (!audioCtx) audioCtx = new AudioCtx();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'shoot') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.15);
+                } else if (type === 'explosion') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.4);
+                    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.4);
+                } else if (type === 'powerup') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(800, audioCtx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.25);
+                } else if (type === 'hit') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(100, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.08);
+                }
+            } catch (err) {}
+        }
+
+        // --- Map design (With Solid Walls & Destructible Crates) ---
+        let obstacles = [];
+        let crates = []; // Destructible boxes that drops power-ups
+        let treadMarks = []; // Tracks left behind on dirt ground
+
+        function createMap() {
+            obstacles = [];
+            crates = [];
+            treadMarks = [];
+
+            // Outer boundaries
+            obstacles.push({ x: 0, y: 0, w: mapWidth, h: 40 }); 
+            obstacles.push({ x: 0, y: mapHeight - 40, w: mapWidth, h: 40 }); 
+            obstacles.push({ x: 0, y: 40, w: 40, h: mapHeight - 80 }); 
+            obstacles.push({ x: mapWidth - 40, y: 40, w: 40, h: mapHeight - 80 }); 
+
+            // Inner solid blocks (Tiny Tanks Maze style)
+            const mazeBlocks = [
+                { x: 300, y: 300, w: 150, h: 60 },
+                { x: 300, y: 360, w: 60, h: 200 },
+                { x: 600, y: 200, w: 200, h: 60 },
+                { x: 200, y: 700, w: 300, h: 60 },
+                { x: 1100, y: 300, w: 300, h: 60 },
+                { x: 1500, y: 200, w: 60, h: 350 },
+                { x: 1200, y: 600, w: 60, h: 300 },
+                { x: 300, y: 1100, w: 60, h: 400 },
+                { x: 500, y: 1200, w: 300, h: 60 },
+                { x: 200, y: 1600, w: 400, h: 60 },
+                { x: 1100, y: 1200, w: 400, h: 60 },
+                { x: 1500, y: 1400, w: 60, h: 300 },
+                { x: 1000, y: 1600, w: 300, h: 60 },
+                { x: 850, y: 850, w: 300, h: 300 },
+                { x: 650, y: 950, w: 200, h: 100 },
+                { x: 1150, y: 950, w: 200, h: 100 }
+            ];
+            mazeBlocks.forEach(b => obstacles.push(b));
+        }
+
+        // --- Crate Class ---
+        class Crate {
+            constructor(id, x, y) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.w = 50;
+                this.h = 50;
+                this.health = 50;
+            }
+            draw(ctx) {
+                ctx.save();
+                ctx.fillStyle = '#854d0e';
+                ctx.strokeStyle = '#451a03';
+                ctx.lineWidth = 3;
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+                ctx.strokeRect(this.x, this.y, this.w, this.h);
+
+                // Cross pattern for crate
+                ctx.beginPath();
+                ctx.moveTo(this.x + 5, this.y + 5);
+                ctx.lineTo(this.x + this.w - 5, this.y + this.h - 5);
+                ctx.moveTo(this.x + this.w - 5, this.y + 5);
+                ctx.lineTo(this.x + 5, this.y + this.h - 5);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        // --- Core Variables ---
+        let localTank = null; 
+        let remoteTanks = {}; 
+        let localBullets = [];
+        let remoteBullets = {}; 
+        let particles = [];
+        let powerups = [];
+
+        function checkCollision(x, y, size, obstacle) {
+            return (
+                x + size > obstacle.x &&
+                x - size < obstacle.x + obstacle.w &&
+                y + size > obstacle.y &&
+                y - size < obstacle.y + obstacle.h
+            );
+        }
+
+        function checkPointCollision(x, y, obstacle) {
+            return (
+                x >= obstacle.x &&
+                x <= obstacle.x + obstacle.w &&
+                y >= obstacle.y &&
+                y <= obstacle.y + obstacle.h
+            );
+        }
+
+        function getRandomSpawnPos() {
+            let spawn = { x: 0, y: 0 };
+            let safe = false;
+            while (!safe) {
+                spawn.x = 100 + Math.random() * (mapWidth - 200);
+                spawn.y = 100 + Math.random() * (mapHeight - 200);
+                safe = true;
+                for (let obs of obstacles) {
+                    if (checkCollision(spawn.x, spawn.y, 45, obs)) {
+                        safe = false;
+                        break;
+                    }
+                }
+                for (let cr of crates) {
+                    if (checkCollision(spawn.x, spawn.y, 45, cr)) {
+                        safe = false;
+                        break;
+                    }
+                }
+            }
+            return spawn;
+        }
+
+        // Helper Rounded Rect
+        function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+            if (fill) ctx.fill();
+            if (stroke) ctx.stroke();
+        }
+
+        // --- Tank Class ---
+        class Tank {
+            constructor(id, x, y, name, color, isLocal = false) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.name = name;
+                this.color = color;
+                this.isLocal = isLocal;
+                this.size = 24;
+                this.speed = 3.8;
+                this.angle = 0;
+                this.turretAngle = 0;
+                
+                this.vx = 0;
+                this.vy = 0;
+                this.friction = 0.88;
+
+                this.health = 100;
+                this.maxHealth = 100;
+                this.score = 0;
+                this.isDead = false;
+
+                this.shootCooldown = 0;
+                this.maxShootCooldown = 30;
+                this.weaponType = 'normal';
+                this.weaponTimer = 0;
+                this.shieldActive = false;
+                this.shieldTimer = 0;
+                this.speedBoostActive = false;
+                this.speedBoostTimer = 0;
+
+                this.chatMsg = '';
+                this.chatTimer = 0;
+            }
+
+            update() {
+                if (this.isDead) return;
+
+                // Power up timers
+                if (this.isLocal) {
+                    if (this.weaponType === 'triple') {
+                        this.weaponTimer--;
+                        if (this.weaponTimer <= 0) {
+                            this.weaponType = 'normal';
+                            updateHUD();
+                        }
+                    }
+                    if (this.shieldActive) {
+                        this.shieldTimer--;
+                        if (this.shieldTimer <= 0) this.shieldActive = false;
+                    }
+                    if (this.speedBoostActive) {
+                        this.speedBoostTimer--;
+                        this.speed = 5.5;
+                        if (this.speedBoostTimer <= 0) {
+                            this.speedBoostActive = false;
+                            this.speed = 3.8;
+                        }
+                    }
+
+                    if (this.shootCooldown > 0) this.shootCooldown--;
+
+                    // Keyboard + Joystick inputs
+                    let dx = 0;
+                    let dy = 0;
+
+                    if (keys['KeyW'] || keys['ArrowUp']) dy = -1;
+                    if (keys['KeyS'] || keys['ArrowDown']) dy = 1;
+                    if (keys['KeyA'] || keys['ArrowLeft']) dx = -1;
+                    if (keys['KeyD'] || keys['ArrowRight']) dx = 1;
+
+                    if (leftJoystick.active) {
+                        dx = leftJoystick.inputX;
+                        dy = leftJoystick.inputY;
+                    }
+
+                    if (dx !== 0 || dy !== 0) {
+                        const moveAngle = Math.atan2(dy, dx);
+                        this.angle = moveAngle;
+                        this.vx += Math.cos(moveAngle) * this.speed * 0.15;
+                        this.vy += Math.sin(moveAngle) * this.speed * 0.15;
+                        
+                        // Add persistent tread marks
+                        if (Math.random() < 0.2) {
+                            treadMarks.push({
+                                x: this.x,
+                                y: this.y,
+                                angle: this.angle,
+                                life: 300 // Fade over time
+                            });
+                        }
+                    }
+
+                    // Turret logic
+                    if (isTouchDevice) {
+                        if (rightJoystick.active) {
+                            const targetTurretAngle = Math.atan2(rightJoystick.inputY, rightJoystick.inputX);
+                            this.turretAngle = targetTurretAngle;
+                            if (Math.hypot(rightJoystick.inputX, rightJoystick.inputY) > 0.6) {
+                                this.shoot();
+                            }
+                        }
+                    } else {
+                        const worldMouseX = mouseX + (this.x - canvas.width / 2);
+                        const worldMouseY = mouseY + (this.y - canvas.height / 2);
+                        this.turretAngle = Math.atan2(worldMouseY - this.y, worldMouseX - this.x);
+
+                        if (mouseClicked) {
+                            this.shoot();
+                        }
+                    }
+
+                    this.vx *= this.friction;
+                    this.vy *= this.friction;
+
+                    let nextX = this.x + this.vx;
+                    let nextY = this.y + this.vy;
+
+                    let collidedX = false;
+                    let collidedY = false;
+
+                    // Obstacles check
+                    for (let obs of obstacles) {
+                        if (checkCollision(nextX, this.y, this.size, obs)) collidedX = true;
+                        if (checkCollision(this.x, nextY, this.size, obs)) collidedY = true;
+                    }
+                    // Crates check
+                    for (let cr of crates) {
+                        if (checkCollision(nextX, this.y, this.size, cr)) collidedX = true;
+                        if (checkCollision(this.x, nextY, this.size, cr)) collidedY = true;
+                    }
+
+                    if (!collidedX) this.x = nextX;
+                    if (!collidedY) this.y = nextY;
+
+                    // Sync position to Firestore database occasionally (optimized throttling)
+                    if (Math.abs(this.vx) > 0.05 || Math.abs(this.vy) > 0.05 || Math.random() < 0.1) {
+                        syncLocalPlayerToFirestore();
+                    }
+
+                    if (Math.hypot(this.vx, this.vy) > 0.5 && Math.random() < 0.15) {
+                        particles.push(new Particle(this.x, this.y, '#64748b', 12, 0.4, 0, 0));
+                    }
+                }
+
+                if (this.chatTimer > 0) this.chatTimer--;
+            }
+
+            shoot() {
+                if (this.shootCooldown > 0) return;
+                playSound('shoot');
+
+                const barrelLength = 32;
+                const startX = this.x + Math.cos(this.turretAngle) * barrelLength;
+                const startY = this.y + Math.sin(this.turretAngle) * barrelLength;
+
+                if (this.weaponType === 'triple') {
+                    const spreads = [-0.2, 0, 0.2];
+                    spreads.forEach((spread, idx) => {
+                        const bId = `${userId}-${Date.now()}-${idx}`;
+                        const bul = new Bullet(bId, startX, startY, this.turretAngle + spread, userId);
+                        localBullets.push(bul);
+                        syncBulletToFirestore(bul);
+                    });
+                } else {
+                    const bId = `${userId}-${Date.now()}`;
+                    const bul = new Bullet(bId, startX, startY, this.turretAngle, userId);
+                    localBullets.push(bul);
+                    syncBulletToFirestore(bul);
+                }
+
+                this.vx -= Math.cos(this.turretAngle) * 1.5;
+                this.vy -= Math.sin(this.turretAngle) * 1.5;
+
+                this.shootCooldown = this.maxShootCooldown;
+            }
+
+            takeDamage(amount, attackerId) {
+                if (this.isDead || !this.isLocal) return;
+
+                if (this.shieldActive) {
+                    this.shieldActive = false;
+                    showToast(`Aapka Shield Toot Gaya! 🛡️`, 'bg-sky-500');
+                    syncLocalPlayerToFirestore();
+                    return;
+                }
+
+                this.health -= amount;
+                playSound('hit');
+
+                for (let i = 0; i < 5; i++) {
+                    particles.push(new Particle(this.x, this.y, '#ef4444', 5, 0.5, (Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5));
+                }
+
+                if (this.health <= 0) {
+                    this.health = 0;
+                    this.die(attackerId);
+                }
+
+                updateHUD();
+                syncLocalPlayerToFirestore();
+            }
+
+            die(attackerId) {
+                this.isDead = true;
+                playSound('explosion');
+
+                for (let i = 0; i < 35; i++) {
+                    const col = i % 2 === 0 ? '#f97316' : '#ef4444';
+                    particles.push(new Particle(this.x, this.y, col, 8 + Math.random() * 8, 0.9, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8));
+                }
+
+                // Award points to remote attacker
+                if (attackerId && attackerId !== userId) {
+                    awardKillPointToRemote(attackerId);
+                }
+
+                gameState = 'gameover';
+                document.getElementById('gameover-score').innerText = this.score;
+                
+                let killerName = "Khud ki goli";
+                if (attackerId && remoteTanks[attackerId]) {
+                    killerName = remoteTanks[attackerId].name;
+                }
+                document.getElementById('gameover-cause').innerText = killerName;
+
+                setTimeout(() => {
+                    gameOverScreen.classList.remove('hidden');
+                    gameOverScreen.classList.add('flex');
+                }, 1000);
+
+                syncLocalPlayerToFirestore();
+            }
+
+            say(message) {
+                this.chatMsg = message;
+                this.chatTimer = 150;
+                if (this.isLocal) syncLocalPlayerToFirestore();
+            }
+
+            draw(ctx) {
+                if (this.isDead) return;
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Shield Effect
+                if (this.shieldActive) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size + 10, 0, Math.PI * 2);
+                    ctx.strokeStyle = '#38bdf8';
+                    ctx.lineWidth = 3;
+                    ctx.shadowColor = '#0284c7';
+                    ctx.shadowBlur = 12;
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+                }
+
+                // Base Shadow
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                ctx.fill();
+
+                // Rotate for treads
+                ctx.save();
+                ctx.rotate(this.angle);
+                ctx.fillStyle = '#1e293b';
+                ctx.fillRect(-this.size - 2, -this.size, this.size * 2 + 4, 8);
+                ctx.fillRect(-this.size - 2, this.size - 8, this.size * 2 + 4, 8);
+                
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 2;
+                for (let i = -this.size; i < this.size; i += 8) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, -this.size);
+                    ctx.lineTo(i, -this.size + 8);
+                    ctx.moveTo(i, this.size - 8);
+                    ctx.lineTo(i, this.size);
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                // Main body
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size - 2, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size - 10, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                ctx.fill();
+
+                // Turret
+                ctx.save();
+                ctx.rotate(this.turretAngle);
+                ctx.fillStyle = '#475569';
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 3;
+                ctx.fillRect(0, -6, 32, 12);
+                ctx.strokeRect(0, -6, 32, 12);
+
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(28, -6, 4, 12);
+
+                ctx.beginPath();
+                ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+
+                // Health bar above
+                const barW = 40;
+                const barH = 5;
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(-barW/2, -this.size - 14, barW, barH);
+                ctx.fillStyle = this.health > 40 ? '#10b981' : '#f43f5e';
+                ctx.fillRect(-barW/2, -this.size - 14, barW * (this.health / this.maxHealth), barH);
+
+                // Name tag
+                ctx.font = 'bold 11px sans-serif';
+                ctx.fillStyle = this.isLocal ? '#a7f3d0' : '#cbd5e1';
+                ctx.textAlign = 'center';
+                ctx.fillText(this.name, 0, -this.size - 20);
+
+                ctx.restore();
+
+                // Chat bubble
+                if (this.chatTimer > 0 && this.chatMsg) {
+                    ctx.save();
+                    ctx.font = 'bold 13px sans-serif';
+                    const textWidth = ctx.measureText(this.chatMsg).width;
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.lineWidth = 1;
+                    roundRect(ctx, this.x - textWidth/2 - 10, this.y - 55, textWidth + 20, 26, 8, true, true);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y - 29);
+                    ctx.lineTo(this.x - 6, this.y - 35);
+                    ctx.lineTo(this.x + 6, this.y - 35);
+                    ctx.closePath();
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(this.chatMsg, this.x, this.y - 42);
+                    ctx.restore();
+                }
+            }
+        }
+
+        // --- Bullet Class ---
+        class Bullet {
+            constructor(id, x, y, angle, ownerId) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.angle = angle;
+                this.ownerId = ownerId;
+                this.radius = 6;
+                this.speed = 8.5;
+                
+                this.vx = Math.cos(angle) * this.speed;
+                this.vy = Math.sin(angle) * this.speed;
+
+                this.bounceCount = 0;
+                this.maxBounces = 2; // Bounces 2 times, dies on 3rd hit
+                this.life = 200;
+                this.isDead = false;
+            }
+
+            update() {
+                if (this.isDead) return;
+
+                this.life--;
+                if (this.life <= 0) {
+                    this.die();
+                    return;
+                }
+
+                let nextX = this.x + this.vx;
+                let nextY = this.y + this.vy;
+
+                // Bullet reflection against solid obstacles
+                for (let obs of obstacles) {
+                    if (checkPointCollision(nextX, nextY, obs)) {
+                        const hitLeft = (this.x <= obs.x && nextX >= obs.x);
+                        const hitRight = (this.x >= obs.x + obs.w && nextX <= obs.x + obs.w);
+                        const hitTop = (this.y <= obs.y && nextY >= obs.y);
+                        const hitBottom = (this.y >= obs.y + obs.h && nextY <= obs.y + obs.h);
+
+                        if (hitLeft || hitRight) {
+                            this.vx *= -1;
+                            nextX = this.x + this.vx;
+                        }
+                        if (hitTop || hitBottom) {
+                            this.vy *= -1;
+                            nextY = this.y + this.vy;
+                        }
+
+                        this.bounceCount++;
+                        playSound('hit');
+
+                        for(let i=0; i<3; i++) {
+                            particles.push(new Particle(this.x, this.y, '#f59e0b', 3, 0.4, (Math.random()-0.5)*3, (Math.random()-0.5)*3));
+                        }
+
+                        if (this.bounceCount > this.maxBounces) {
+                            this.die();
+                            return;
+                        }
+                    }
+                }
+
+                // Bullet reflection / damage on crates (crates are destructible obstacles)
+                for (let cr of crates) {
+                    if (checkPointCollision(nextX, nextY, cr)) {
+                        cr.health -= 25;
+                        playSound('hit');
+                        
+                        // Break crate visual details
+                        for(let i=0; i<5; i++) {
+                            particles.push(new Particle(this.x, this.y, '#854d0e', 4, 0.3, (Math.random()-0.5)*4, (Math.random()-0.5)*4));
+                        }
+
+                        if (cr.health <= 0) {
+                            // Drop Power-up on Firestore only if I am the host (saves duplicate powerup creation)
+                            const activeIds = Object.keys(remoteTanks);
+                            activeIds.push(userId);
+                            activeIds.sort();
+                            if (activeIds[0] === userId) {
+                                const types = ['shield', 'triple_shot', 'speed', 'heal'];
+                                const randomType = types[Math.floor(Math.random() * types.length)];
+                                const pId = `powerup-${Date.now()}`;
+                                const p = new PowerUp(pId, cr.x + 25, cr.y + 25, randomType);
+                                syncPowerupToFirestore(p);
+                            }
+                            // Delete Crate from layout
+                            deleteCrateFromFirestore(cr.id);
+                        }
+
+                        this.die();
+                        return;
+                    }
+                }
+
+                this.x = nextX;
+                this.y = nextY;
+
+                // Damage check
+                if (this.ownerId === userId) {
+                    // Check remote player collision
+                    for (let botId in remoteTanks) {
+                        const bot = remoteTanks[botId];
+                        if (bot && !bot.isDead) {
+                            const dist = Math.hypot(bot.x - this.x, bot.y - this.y);
+                            if (dist < bot.size + this.radius) {
+                                triggerRemotePlayerDamage(botId, 25);
+                                this.die();
+                                return;
+                            }
+                        }
+                    }
+
+                    // Check Self Collision (Asli Tiny Tanks Feature!)
+                    if (localTank && !localTank.isDead) {
+                        const dist = Math.hypot(localTank.x - this.x, localTank.y - this.y);
+                        if (dist < localTank.size + this.radius) {
+                            localTank.takeDamage(25, userId);
+                            this.die();
+                            return;
+                        }
+                    }
+                }
+
+                if (Math.random() < 0.4) {
+                    particles.push(new Particle(this.x, this.y, 'rgba(251, 146, 60, 0.4)', 4, 0.2, 0, 0));
+                }
+            }
+
+            die() {
+                this.isDead = true;
+                for (let i = 0; i < 8; i++) {
+                    particles.push(new Particle(this.x, this.y, '#f97316', 4, 0.4, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4));
+                }
+                if (this.ownerId === userId) {
+                    deleteBulletFromFirestore(this.id);
+                }
+            }
+
+            draw(ctx) {
+                if (this.isDead) return;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#fb923c';
+                ctx.shadowColor = '#ea580c';
+                ctx.shadowBlur = 10;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius - 2, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // --- Particle Effect Class ---
+        class Particle {
+            constructor(x, y, color, size, decay, vx, vy) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.size = size;
+                this.alpha = 1;
+                this.decay = decay;
+                this.vx = vx;
+                this.vy = vy;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.alpha -= this.decay * 0.1;
+                if (this.alpha <= 0) this.alpha = 0;
+            }
+
+            draw(ctx) {
+                if (this.alpha <= 0) return;
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // --- PowerUp Class ---
+        class PowerUp {
+            constructor(id, x, y, type) {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.radius = 20;
+                this.bounceTimer = 0;
+                this.isCollected = false;
+            }
+
+            update() {
+                this.bounceTimer += 0.05;
+                if (localTank && !localTank.isDead) {
+                    if (Math.hypot(localTank.x - this.x, localTank.y - this.y) < localTank.size + this.radius) {
+                        this.apply(localTank);
+                    }
+                }
+            }
+
+            apply(tank) {
+                this.isCollected = true;
+                playSound('powerup');
+
+                if (this.type === 'shield') {
+                    tank.shieldActive = true;
+                    tank.shieldTimer = 600;
+                    showToast(`Aapko Shield Mili! 🛡️`, 'bg-sky-600');
+                } else if (this.type === 'triple_shot') {
+                    tank.weaponType = 'triple';
+                    tank.weaponTimer = 400;
+                    showToast(`Aapko TRIPLE SHOT Mila! 🔥`, 'bg-amber-500');
+                } else if (this.type === 'speed') {
+                    tank.speedBoostActive = true;
+                    tank.speedBoostTimer = 400;
+                    showToast(`Aapka Tank Tez Ho Gaya! ⚡`, 'bg-purple-600');
+                } else if (this.type === 'heal') {
+                    tank.health = Math.min(tank.maxHealth, tank.health + 40);
+                    showToast(`Aapki HP Heal Ho Gai! 💖`, 'bg-emerald-600');
+                }
+
+                updateHUD();
+                syncLocalPlayerToFirestore();
+                deletePowerupFromFirestore(this.id);
+            }
+
+            draw(ctx) {
+                if (this.isCollected) return;
+                const animY = this.y + Math.sin(this.bounceTimer) * 5;
+                ctx.save();
+                ctx.translate(this.x, animY);
+
+                const pulse = Math.abs(Math.sin(this.bounceTimer)) * 4;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius + pulse, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.08)';
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                ctx.lineWidth = 3;
+
+                let iconSymbol = '?';
+
+                if (this.type === 'shield') {
+                    ctx.strokeStyle = '#0284c7';
+                    iconSymbol = '🛡️';
+                } else if (this.type === 'triple_shot') {
+                    ctx.strokeStyle = '#d97706';
+                    iconSymbol = '🔥';
+                } else if (this.type === 'speed') {
+                    ctx.strokeStyle = '#7c3aed';
+                    iconSymbol = '⚡';
+                } else if (this.type === 'heal') {
+                    ctx.strokeStyle = '#059669';
+                    iconSymbol = '💖';
+                }
+
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius - 4, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+                ctx.fill();
+
+                ctx.font = '15px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(iconSymbol, 0, 0);
+                ctx.restore();
+            }
+        }
+
+        // --- Toasts Notifications ---
+        function showToast(text, bgColor = 'bg-slate-800') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `${bgColor} text-white font-semibold text-xs px-4 py-2 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 pointer-events-none`;
+            toast.innerText = text;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('opacity-0'), 50);
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        function updateHUD() {
+            if (!localTank) return;
+            document.getElementById('hud-player-name').innerText = localTank.name;
+            document.getElementById('hud-score').innerText = localTank.score;
+            
+            const healthPercent = (localTank.health / localTank.maxHealth) * 100;
+            const healthBar = document.getElementById('hud-health-bar');
+            healthBar.style.width = `${healthPercent}%`;
+            document.getElementById('hud-health-text').innerText = `${localTank.health}/${localTank.maxHealth}`;
+
+            if (healthPercent > 50) {
+                healthBar.className = "bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all duration-100";
+            } else if (healthPercent > 25) {
+                healthBar.className = "bg-gradient-to-r from-amber-500 to-orange-400 h-full transition-all duration-100";
+            } else {
+                healthBar.className = "bg-gradient-to-r from-red-600 to-rose-500 h-full transition-all duration-100";
+            }
+
+            const weaponText = localTank.weaponType === 'triple' ? 'TRIPLE SHOT 🔥' : 'Asli Goli';
+            document.getElementById('hud-weapon').innerText = weaponText;
+        }
+
+        function updateLeaderboard() {
+            const allTanks = [];
+            if (localTank && !localTank.isDead) allTanks.push(localTank);
+            for (let id in remoteTanks) {
+                if (!remoteTanks[id].isDead) allTanks.push(remoteTanks[id]);
+            }
+
+            allTanks.sort((a,b) => b.score - a.score);
+
+            const leaderboardList = document.getElementById('leaderboard-list');
+            leaderboardList.innerHTML = '';
+
+            allTanks.slice(0, 5).forEach((tank, idx) => {
+                const isUser = (tank.id === userId);
+                const li = document.createElement('li');
+                li.className = `flex justify-between py-0.5 ${isUser ? 'text-emerald-400 font-bold' : 'text-slate-300'}`;
+                li.innerHTML = `<span>${idx + 1}. ${tank.name}</span> <span class="font-bold">${tank.score}</span>`;
+                leaderboardList.appendChild(li);
+            });
+        }
+
+        // --- FIRESTORE DATABASE SYNC LOGIC (Rule 1 & Rule 2 Compliant) ---
+        let currentLobbyId = 'global-arena';
+
+        // 1. Sync Local Player State to Firestore
+        async function syncLocalPlayerToFirestore() {
+            if (!user || !localTank) return;
+            const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'players', userId);
+            try {
+                await setDoc(playerDocRef, {
+                    id: userId,
+                    x: localTank.x,
+                    y: localTank.y,
+                    name: localTank.name,
+                    color: localTank.color,
+                    angle: localTank.angle,
+                    turretAngle: localTank.turretAngle,
+                    health: localTank.health,
+                    score: localTank.score,
+                    isDead: localTank.isDead,
+                    chatMsg: localTank.chatMsg,
+                    chatTimer: localTank.chatTimer,
+                    shieldActive: localTank.shieldActive,
+                    lastActive: Date.now()
+                }, { merge: true });
+            } catch (err) {
+                console.error("Sync error:", err);
+            }
+        }
+
+        // 2. Sync Fire Bullet
+        async function syncBulletToFirestore(bullet) {
+            if (!user) return;
+            const bulletDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'bullets', bullet.id);
+            try {
+                await setDoc(bulletDocRef, {
+                    id: bullet.id,
+                    x: bullet.x,
+                    y: bullet.y,
+                    angle: bullet.angle,
+                    ownerId: bullet.ownerId,
+                    timestamp: Date.now()
+                });
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function deleteBulletFromFirestore(bId) {
+            if (!user) return;
+            const bulletDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'bullets', bId);
+            try {
+                await deleteDoc(bulletDocRef);
+            } catch (err) {}
+        }
+
+        // 3. Trigger Damage to Remote Target
+        async function triggerRemotePlayerDamage(remoteId, damageAmount) {
+            if (!user) return;
+            const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'players', remoteId);
+            try {
+                const docSnap = await getDoc(playerDocRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const newHealth = Math.max(0, (data.health || 100) - damageAmount);
+                    let isDead = false;
+                    if (newHealth <= 0) {
+                        isDead = true;
+                    }
+                    await updateDoc(playerDocRef, {
+                        health: newHealth,
+                        isDead: isDead
+                    });
+                }
+            } catch (err) {}
+        }
+
+        // Award points
+        async function awardKillPointToRemote(remoteId) {
+            if (!user) return;
+            const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'players', remoteId);
+            try {
+                const docSnap = await getDoc(playerDocRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    await updateDoc(playerDocRef, {
+                        score: (data.score || 0) + 100
+                    });
+                }
+            } catch (err) {}
+        }
+
+        // Crates synchronization over firestore
+        async function syncCrateToFirestore(crate) {
+            if (!user) return;
+            const crateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'crates', crate.id);
+            try {
+                await setDoc(crateDocRef, {
+                    id: crate.id,
+                    x: crate.x,
+                    y: crate.y,
+                    health: crate.health
+                });
+            } catch (err) {}
+        }
+
+        async function deleteCrateFromFirestore(cId) {
+            if (!user) return;
+            const crateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'crates', cId);
+            try {
+                await deleteDoc(crateDocRef);
+            } catch (err) {}
+        }
+
+        // Spawn / Sync Powerups
+        async function syncPowerupToFirestore(powerup) {
+            if (!user) return;
+            const powerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'powerups', powerup.id);
+            try {
+                await setDoc(powerDocRef, {
+                    id: powerup.id,
+                    x: powerup.x,
+                    y: powerup.y,
+                    type: powerup.type,
+                    timestamp: Date.now()
+                });
+            } catch (err) {}
+        }
+
+        async function deletePowerupFromFirestore(pId) {
+            if (!user) return;
+            const powerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'powerups', pId);
+            try {
+                await deleteDoc(powerDocRef);
+            } catch (err) {}
+        }
+
+        // --- Firebase Listeners ---
+        let unsubPlayers = null;
+        let unsubBullets = null;
+        let unsubPowerups = null;
+        let unsubCrates = null;
+
+        function startLobbySubscription() {
+            if (unsubPlayers) unsubPlayers();
+            if (unsubBullets) unsubBullets();
+            if (unsubPowerups) unsubPowerups();
+            if (unsubCrates) unsubCrates();
+
+            document.getElementById('hud-lobby-id').innerText = currentLobbyId;
+
+            // 1. Players Listener
+            const playersColRef = collection(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'players');
+            unsubPlayers = onSnapshot(playersColRef, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    const data = change.doc.data();
+                    const pId = change.doc.id;
+
+                    if (pId === userId) {
+                        if (localTank) {
+                            if (data.health !== undefined && data.health < localTank.health) {
+                                localTank.health = data.health;
+                                if (localTank.health <= 0 && !localTank.isDead) {
+                                    localTank.die();
+                                }
+                                updateHUD();
+                            }
+                            if (data.score !== undefined && data.score > localTank.score) {
+                                localTank.score = data.score;
+                                updateHUD();
+                            }
+                        }
+                        return;
+                    }
+
+                    if (change.type === "added" || change.type === "modified") {
+                        if (!remoteTanks[pId]) {
+                            remoteTanks[pId] = new Tank(pId, data.x, data.y, data.name, data.color, false);
+                        }
+                        const t = remoteTanks[pId];
+                        t.x = data.x;
+                        t.y = data.y;
+                        t.name = data.name;
+                        t.color = data.color;
+                        t.angle = data.angle;
+                        t.turretAngle = data.turretAngle;
+                        t.health = data.health;
+                        t.score = data.score;
+                        t.isDead = data.isDead;
+                        t.chatMsg = data.chatMsg;
+                        t.chatTimer = data.chatTimer;
+                        t.shieldActive = data.shieldActive;
+                    }
+
+                    if (change.type === "removed") {
+                        delete remoteTanks[pId];
+                    }
+                });
+                updateLeaderboard();
+            }, (err) => console.error("Players sync err:", err));
+
+            // 2. Bullets Listener
+            const bulletsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'bullets');
+            unsubBullets = onSnapshot(bulletsColRef, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    const data = change.doc.data();
+                    const bId = change.doc.id;
+
+                    if (change.type === "added") {
+                        if (data.ownerId !== userId && !remoteBullets[bId]) {
+                            const bul = new Bullet(bId, data.x, data.y, data.angle, data.ownerId);
+                            remoteBullets[bId] = bul;
+                        }
+                    }
+                    if (change.type === "removed") {
+                        if (remoteBullets[bId]) {
+                            remoteBullets[bId].isDead = true;
+                            delete remoteBullets[bId];
+                        }
+                    }
+                });
+            }, (err) => console.error(err));
+
+            // 3. Powerups Listener
+            const powerupsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'powerups');
+            unsubPowerups = onSnapshot(powerupsColRef, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    const data = change.doc.data();
+                    const pId = change.doc.id;
+
+                    if (change.type === "added") {
+                        if (!powerups.some(p => p.id === pId)) {
+                            powerups.push(new PowerUp(pId, data.x, data.y, data.type));
+                        }
+                    }
+                    if (change.type === "removed") {
+                        powerups = powerups.filter(p => p.id !== pId);
+                    }
+                });
+            }, (err) => console.error(err));
+
+            // 4. Crates/Destructibles Listener
+            const cratesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'crates');
+            unsubCrates = onSnapshot(cratesColRef, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    const data = change.doc.data();
+                    const cId = change.doc.id;
+
+                    if (change.type === "added") {
+                        if (!crates.some(c => c.id === cId)) {
+                            crates.push(new Crate(cId, data.x, data.y));
+                        }
+                    }
+                    if (change.type === "removed") {
+                        crates = crates.filter(c => c.id !== cId);
+                    }
+                });
+            }, (err) => console.error(err));
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (user && localTank) {
+                const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'players', userId);
+                deleteDoc(playerDocRef);
+            }
+        });
+
+        // --- Start Online Game ---
+        function startGame() {
+            playerName = document.getElementById('player-name').value.trim() || 'Khatarnak_Khiladi';
+            lobbyScreen.classList.add('hidden');
+            gameOverScreen.classList.add('hidden');
+            gameHud.classList.remove('hidden');
+
+            createMap();
+
+            localBullets = [];
+            particles = [];
+            powerups = [];
+            crates = [];
+            remoteTanks = {};
+            remoteBullets = {};
+
+            const spawnPos = getRandomSpawnPos();
+            localTank = new Tank(userId, spawnPos.x, spawnPos.y, playerName, playerColor, true);
+
+            // Initial online registering
+            syncLocalPlayerToFirestore();
+            startLobbySubscription();
+
+            // Setup Host responsibilities (spawning initial Crates layout)
+            setTimeout(() => {
+                const activeIds = Object.keys(remoteTanks);
+                activeIds.push(userId);
+                activeIds.sort();
+                if (activeIds[0] === userId) {
+                    // I am the host! Let's spawn 12 Crates across the map randomly
+                    for (let i = 0; i < 12; i++) {
+                        const cratePos = getRandomSpawnPos();
+                        const cId = `crate-${Date.now()}-${i}`;
+                        const c = new Crate(cId, cratePos.x - 25, cratePos.y - 25);
+                        syncCrateToFirestore(c);
+                    }
+                }
+            }, 1000);
+
+            // Periodically respawn crates if they are depleted
+            if (window.crateRespawnInterval) clearInterval(window.crateRespawnInterval);
+            window.crateRespawnInterval = setInterval(() => {
+                if (gameState === 'playing' && crates.length < 5) {
+                    const activeIds = Object.keys(remoteTanks);
+                    activeIds.push(userId);
+                    activeIds.sort();
+                    if (activeIds[0] === userId) {
+                        const cratePos = getRandomSpawnPos();
+                        const cId = `crate-${Date.now()}`;
+                        const c = new Crate(cId, cratePos.x - 25, cratePos.y - 25);
+                        syncCrateToFirestore(c);
+                    }
+                }
+            }, 10000);
+
+            gameState = 'playing';
+            updateHUD();
+            showToast("Online Arena Mein Swagat Hai! 🚀", "bg-indigo-600");
+        }
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            startGame();
+        });
+
+        document.getElementById('respawn-btn').addEventListener('click', () => {
+            startGame();
+        });
+
+        // --- Player Emoji Pickers Menu --
+        const emojiMenuBtn = document.getElementById('emoji-menu-btn');
+        const emojiPicker = document.getElementById('emoji-picker');
+        emojiMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            emojiPicker.classList.toggle('hidden');
+        });
+
+        document.querySelectorAll('.emoji-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const em = btn.getAttribute('data-emoji');
+                if (localTank && !localTank.isDead) {
+                    localTank.say(em);
+                }
+                emojiPicker.classList.add('hidden');
+            });
+        });
+
+        document.addEventListener('click', () => {
+            emojiPicker.classList.add('hidden');
+        });
+
+        // --- MAIN GAME LOOP ---
+        function gameLoop() {
+            requestAnimationFrame(gameLoop);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === 'playing') {
+                if (localTank) localTank.update();
+                
+                for (let id in remoteTanks) {
+                    remoteTanks[id].update();
+                }
+
+                localBullets.forEach(bullet => bullet.update());
+                localBullets = localBullets.filter(b => !b.isDead);
+
+                for (let bId in remoteBullets) {
+                    remoteBullets[bId].update();
+                }
+
+                // Tread marks logic (decay)
+                treadMarks.forEach(tm => {
+                    tm.life--;
+                });
+                treadMarks = treadMarks.filter(tm => tm.life > 0);
+
+                particles.forEach(p => p.update());
+                particles = particles.filter(p => p.alpha > 0);
+
+                powerups.forEach(p => p.update());
+            }
+
+            // 2. Render View with Camera Focus
+            ctx.save();
+            if (localTank) {
+                ctx.translate(canvas.width / 2 - localTank.x, canvas.height / 2 - localTank.y);
+            }
+
+            // Draw grid
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            const gridSize = 100;
+            for (let x = 0; x < mapWidth; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, mapHeight);
+                ctx.stroke();
+            }
+            for (let y = 0; y < mapHeight; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(mapWidth, y);
+                ctx.stroke();
+            }
+
+            // Draw Persistent Tread Marks
+            treadMarks.forEach(tm => {
+                ctx.save();
+                ctx.translate(tm.x, tm.y);
+                ctx.rotate(tm.angle);
+                ctx.fillStyle = `rgba(0, 0, 0, ${tm.life / 600})`;
+                // Left & Right tracks
+                ctx.fillRect(-10, -16, 20, 3);
+                ctx.fillRect(-10, 13, 20, 3);
+                ctx.restore();
+            });
+
+            // Draw Obstacles / Walls
+            obstacles.forEach(obs => {
+                ctx.save();
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 3;
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+                
+                ctx.strokeStyle = '#334155';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(obs.x + 4, obs.y + 4, obs.w - 8, obs.h - 8);
+                ctx.restore();
+            });
+
+            // Draw Crates
+            crates.forEach(cr => cr.draw(ctx));
+
+            // Draw Powerups
+            powerups.forEach(p => p.draw(ctx));
+
+            // Draw Local Bullets
+            localBullets.forEach(bullet => bullet.draw(ctx));
+
+            // Draw Remote Bullets
+            for (let bId in remoteBullets) {
+                remoteBullets[bId].draw(ctx);
+            }
+
+            // Draw Remote Tanks
+            for (let id in remoteTanks) {
+                remoteTanks[id].draw(ctx);
+            }
+
+            // Draw Local Tank
+            if (localTank) localTank.draw(ctx);
+
+            // Draw Particles
+            particles.forEach(p => p.draw(ctx));
+
+            ctx.restore(); // Restore Camera
+        }
+
+        // Start
+        gameLoop();
+    </script>
+</body>
+</html>
+
+```
