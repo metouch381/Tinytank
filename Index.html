@@ -4,10 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tiny Tanks Arena - Online Multiplayer Pro</title>
-    <!-- Tailwind CSS for styling -->
+    <title>Tiny Tanks Arena - Live Multiplayer</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
@@ -24,7 +22,6 @@
             display: block;
             background: #0f172a;
         }
-        /* Mobile Joystick Styles */
         .joystick-container {
             position: absolute;
             bottom: 40px;
@@ -56,20 +53,17 @@
 </head>
 <body class="relative h-screen w-screen overflow-hidden text-white">
 
-    <!-- 1. Lobby/Start Screen Overlay -->
     <div id="lobby-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/95 p-4 transition-all duration-300">
         <div class="max-w-md w-full bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl text-center space-y-6">
             <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-500 to-red-600 animate-pulse tracking-wider">
                 TINY TANKS ONLINE
             </h1>
-            <p class="text-slate-400 text-sm">Real-time multiplayer tank arena! Goliyaan deewaron pe bounce hongi aur aapko bhi lag sakti hain!</p>
+            <p class="text-slate-400 text-sm">Real-time multiplayer tank arena! Bouncing physics, dynamic damage, and real battles!</p>
 
-            <!-- Loading Firebase Status -->
             <div id="connection-status" class="text-xs bg-slate-950/60 py-2 rounded border border-slate-800 text-amber-400">
                 <i class="fa-solid fa-circle-notch animate-spin mr-2"></i> Server se jud rahe hain...
             </div>
 
-            <!-- Player Settings -->
             <div class="space-y-4 text-left">
                 <div>
                     <label class="block text-slate-300 text-sm font-bold mb-1">Apna Naam Likhein:</label>
@@ -87,61 +81,40 @@
                 </div>
             </div>
 
-            <!-- Start Button -->
             <button id="start-btn" disabled class="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-all text-lg opacity-50 cursor-not-allowed">
                 Server Se Judne Ka Intezar Karein
             </button>
-
-            <!-- Instructions -->
-            <div class="border-t border-slate-800 pt-4 text-xs text-slate-400 text-left space-y-2">
-                <p class="font-semibold text-slate-300">Kaise Kheleingey (Desktop):</p>
-                <p><i class="fa-solid fa-keyboard text-orange-400 mr-2"></i><strong>WASD / Arrow Keys:</strong> Chalne ke liye</p>
-                <p><i class="fa-solid fa-mouse text-orange-400 mr-2"></i><strong>Mouse Aim + Click:</strong> Goli chalane ke liye</p>
-                <p class="font-semibold text-slate-300 mt-2">Kaise Kheleingey (Mobile):</p>
-                <p><i class="fa-solid fa-mobile-screen text-orange-400 mr-2"></i><strong>Left Joystick:</strong> Chalne ke liye | <strong>Right Joystick:</strong> Aim aur Shoot</p>
-            </div>
         </div>
     </div>
 
-    <!-- 2. Game HUD (In-game UI) -->
     <div id="game-hud" class="absolute inset-0 pointer-events-none hidden z-40 flex flex-col justify-between p-4">
-        <!-- Top Row: Logo, Stats, & Leaderboard -->
         <div class="flex justify-between items-start w-full">
-            <!-- Health & Score -->
             <div class="bg-slate-900/90 backdrop-blur border border-slate-700 p-3 rounded-xl flex flex-col gap-1 pointer-events-auto shadow-lg min-w-[200px]">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs text-slate-400 font-bold uppercase">Aapka Tank:</span>
                     <span id="hud-player-name" class="text-xs text-emerald-400 font-bold">Player</span>
                 </div>
-                <!-- Health Bar -->
                 <div class="w-full bg-slate-800 rounded-full h-4 overflow-hidden relative border border-slate-600">
                     <div id="hud-health-bar" class="bg-gradient-to-r from-emerald-500 to-teal-400 h-full transition-all duration-100" style="width: 100%;"></div>
                     <span id="hud-health-text" class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">100/100</span>
                 </div>
-                <!-- Score & Weapon Info -->
                 <div class="flex justify-between items-center text-xs mt-1">
                     <span>Kills: <strong id="hud-score" class="text-amber-400">0</strong></span>
-                    <span id="hud-weapon" class="text-[10px] bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-slate-300">Asli Goliyaan</span>
+                    <span id="hud-weapon" class="text-[10px] bg-slate-800 border border-slate-700 px-2 py-0.5 rounded text-slate-300">Asli Goli</span>
                 </div>
             </div>
 
-            <!-- Leaderboard -->
             <div class="bg-slate-900/90 backdrop-blur border border-slate-700 p-3 rounded-xl pointer-events-auto shadow-lg w-52">
                 <h3 class="text-xs font-bold text-center border-b border-slate-700 pb-1 mb-2 text-amber-400 tracking-wider">
                     <i class="fa-solid fa-users mr-1"></i> LIVE SCOREBOARD
                 </h3>
                 <ol id="leaderboard-list" class="text-xs space-y-1 font-mono">
-                    <!-- Dynamic live players loaded here -->
-                </ol>
+                    </ol>
             </div>
         </div>
 
-        <!-- Center Overlay for Emojis/Chat notifications -->
         <div id="toast-container" class="absolute top-1/4 left-1/2 transform -translate-x-1/2 flex flex-col gap-2 items-center pointer-events-none"></div>
 
-        <!-- Touch Controls UI -->
         <div class="w-full flex justify-between items-end">
-            <!-- Mobile Chat/Emoji Button -->
             <div class="pointer-events-auto">
                 <button id="emoji-menu-btn" class="bg-slate-800/90 hover:bg-slate-700 border border-slate-700 w-12 h-12 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-all">
                     <i class="fa-regular fa-face-laugh-beam text-xl text-yellow-400"></i>
@@ -154,22 +127,19 @@
                     <button class="emoji-btn hover:scale-125 transition text-2xl" data-emoji="💀">💀</button>
                 </div>
             </div>
-
-            <!-- Total players indicator -->
             <div class="bg-slate-900/80 px-3 py-1 rounded-full text-xs text-slate-400 border border-slate-700">
                 Lobby ID: <span id="hud-lobby-id" class="text-white font-mono">Connecting...</span>
             </div>
         </div>
     </div>
 
-    <!-- 3. Game Over Screen -->
     <div id="gameover-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-slate-950/80 p-4 hidden transition-all duration-300">
         <div class="max-w-sm w-full bg-slate-900 border border-rose-950 rounded-2xl p-6 shadow-2xl text-center space-y-6">
-            <h2 class="text-3xl font-black text-rose-500 tracking-wider">Aap Maar Diye Gaye!</h2>
+            <h2 class="text-3xl font-black text-rose-500 tracking-wider">GAME OVER!</h2>
             <div class="p-4 bg-slate-950/50 rounded-lg border border-slate-800 space-y-2">
                 <p class="text-slate-400 text-sm">Aapka Safar:</p>
                 <p class="text-xl">Final Kills: <strong id="gameover-score" class="text-amber-400">0</strong></p>
-                <p class="text-sm text-slate-500">Maut Ka Karan: <span id="gameover-cause" class="text-rose-400 font-semibold">Goli</span></p>
+                <p class="text-sm text-slate-500">Maut Ka Karan: <span id="gameover-cause" class="text-rose-400 font-semibold">Unknown</span></p>
             </div>
             <button id="respawn-btn" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-all text-lg">
                 Dobara Kheleid (Respawn) <i class="fa-solid fa-rotate-left ml-2"></i>
@@ -177,7 +147,6 @@
         </div>
     </div>
 
-    <!-- Mobile Virtual Joysticks -->
     <div id="left-joystick" class="joystick-container">
         <div class="joystick-knob"></div>
     </div>
@@ -185,33 +154,36 @@
         <div class="joystick-knob"></div>
     </div>
 
-    <!-- Game Canvas -->
     <canvas id="gameCanvas"></canvas>
 
-    <!-- Firebase SDK Imports -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Firebase Configuration & Integration ---
-        const firebaseConfig = JSON.parse(__firebase_config);
+        // --- Firebase Configuration integrated with your exact credentials ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA0j8fKVoQy30kscZGJCvdmXTH3sOn4zJ8",
+            authDomain: "tink-tank.firebaseapp.com",
+            projectId: "tink-tank",
+            storageBucket: "tink-tank.firebasestorage.app",
+            messagingSenderId: "93229888975",
+            appId: "1:93229888975:web:5aff0679f9e13a90dc0eba",
+            measurementId: "G-2FDHLMG809"
+        };
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'tinytank-multiplayer-v1';
+        const appId = 'tinytank-multiplayer-v1';
 
         let user = null;
         let userId = '';
 
-        // Initial Auth Setup (Strict Rule 3)
+        // Anonymous Login for Players
         const initAuth = async () => {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInAnonymously(auth);
             } catch (error) {
                 console.error("Auth error:", error);
             }
@@ -222,13 +194,12 @@
             if (u) {
                 user = u;
                 userId = u.uid;
-                // Enable Game Shuru Button as soon as Firebase is ready
                 document.getElementById('connection-status').className = "text-xs bg-emerald-950/60 py-2 rounded border border-emerald-800 text-emerald-400";
                 document.getElementById('connection-status').innerHTML = '<i class="fa-solid fa-circle-check mr-2"></i> Server se jud gaye hain!';
                 const startBtn = document.getElementById('start-btn');
                 startBtn.disabled = false;
                 startBtn.className = "w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform hover:scale-105 transition-all text-lg cursor-pointer";
-                startBtn.innerText = "Khel Shuru Karein";
+                startBtn.innerText = "Khel Shuru/Respawn";
             }
         });
 
@@ -259,7 +230,7 @@
             document.getElementById('right-joystick').style.display = 'block';
         }
 
-        // --- Controls ---
+        // Controls
         const keys = {};
         window.addEventListener('keydown', (e) => { keys[e.code] = true; });
         window.addEventListener('keyup', (e) => { keys[e.code] = false; });
@@ -276,7 +247,7 @@
         window.addEventListener('mousedown', () => { mouseClicked = true; });
         window.addEventListener('mouseup', () => { mouseClicked = false; });
 
-        // --- Joysticks ---
+        // Joysticks Setup
         const leftJoystick = {
             container: document.getElementById('left-joystick'),
             knob: document.getElementById('left-joystick').querySelector('.joystick-knob'),
@@ -344,7 +315,6 @@
         setupJoystick(leftJoystick, leftJoystick.container);
         setupJoystick(rightJoystick, rightJoystick.container);
 
-        // Color Picker
         const colorPickerBtns = document.querySelectorAll('#color-picker button');
         colorPickerBtns.forEach(btn => {
             btn.addEventListener('click', () => {
@@ -356,7 +326,7 @@
             });
         });
 
-        // --- Sound Simulation ---
+        // --- Synthesized SFX ---
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         let audioCtx = null;
         function playSound(type) {
@@ -403,23 +373,23 @@
             } catch (err) {}
         }
 
-        // --- Map design (With Solid Walls & Destructible Crates) ---
+        // --- Map Layout & Physics ---
         let obstacles = [];
-        let crates = []; // Destructible boxes that drops power-ups
-        let treadMarks = []; // Tracks left behind on dirt ground
+        let crates = []; 
+        let treadMarks = []; 
 
         function createMap() {
             obstacles = [];
             crates = [];
             treadMarks = [];
 
-            // Outer boundaries
+            // Outer Boundaries
             obstacles.push({ x: 0, y: 0, w: mapWidth, h: 40 }); 
             obstacles.push({ x: 0, y: mapHeight - 40, w: mapWidth, h: 40 }); 
             obstacles.push({ x: 0, y: 40, w: 40, h: mapHeight - 80 }); 
             obstacles.push({ x: mapWidth - 40, y: 40, w: 40, h: mapHeight - 80 }); 
 
-            // Inner solid blocks (Tiny Tanks Maze style)
+            // Inner Walls (Maze Pattern)
             const mazeBlocks = [
                 { x: 300, y: 300, w: 150, h: 60 },
                 { x: 300, y: 360, w: 60, h: 200 },
@@ -441,7 +411,6 @@
             mazeBlocks.forEach(b => obstacles.push(b));
         }
 
-        // --- Crate Class ---
         class Crate {
             constructor(id, x, y) {
                 this.id = id;
@@ -458,8 +427,6 @@
                 ctx.lineWidth = 3;
                 ctx.fillRect(this.x, this.y, this.w, this.h);
                 ctx.strokeRect(this.x, this.y, this.w, this.h);
-
-                // Cross pattern for crate
                 ctx.beginPath();
                 ctx.moveTo(this.x + 5, this.y + 5);
                 ctx.lineTo(this.x + this.w - 5, this.y + this.h - 5);
@@ -470,7 +437,6 @@
             }
         }
 
-        // --- Core Variables ---
         let localTank = null; 
         let remoteTanks = {}; 
         let localBullets = [];
@@ -519,7 +485,6 @@
             return spawn;
         }
 
-        // Helper Rounded Rect
         function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
             ctx.beginPath();
             ctx.moveTo(x + radius, y);
@@ -575,7 +540,6 @@
             update() {
                 if (this.isDead) return;
 
-                // Power up timers
                 if (this.isLocal) {
                     if (this.weaponType === 'triple') {
                         this.weaponTimer--;
@@ -599,7 +563,6 @@
 
                     if (this.shootCooldown > 0) this.shootCooldown--;
 
-                    // Keyboard + Joystick inputs
                     let dx = 0;
                     let dy = 0;
 
@@ -619,18 +582,16 @@
                         this.vx += Math.cos(moveAngle) * this.speed * 0.15;
                         this.vy += Math.sin(moveAngle) * this.speed * 0.15;
                         
-                        // Add persistent tread marks
                         if (Math.random() < 0.2) {
                             treadMarks.push({
                                 x: this.x,
                                 y: this.y,
                                 angle: this.angle,
-                                life: 300 // Fade over time
+                                life: 300
                             });
                         }
                     }
 
-                    // Turret logic
                     if (isTouchDevice) {
                         if (rightJoystick.active) {
                             const targetTurretAngle = Math.atan2(rightJoystick.inputY, rightJoystick.inputX);
@@ -658,12 +619,10 @@
                     let collidedX = false;
                     let collidedY = false;
 
-                    // Obstacles check
                     for (let obs of obstacles) {
                         if (checkCollision(nextX, this.y, this.size, obs)) collidedX = true;
                         if (checkCollision(this.x, nextY, this.size, obs)) collidedY = true;
                     }
-                    // Crates check
                     for (let cr of crates) {
                         if (checkCollision(nextX, this.y, this.size, cr)) collidedX = true;
                         if (checkCollision(this.x, nextY, this.size, cr)) collidedY = true;
@@ -672,7 +631,6 @@
                     if (!collidedX) this.x = nextX;
                     if (!collidedY) this.y = nextY;
 
-                    // Sync position to Firestore database occasionally (optimized throttling)
                     if (Math.abs(this.vx) > 0.05 || Math.abs(this.vy) > 0.05 || Math.random() < 0.1) {
                         syncLocalPlayerToFirestore();
                     }
@@ -710,7 +668,6 @@
 
                 this.vx -= Math.cos(this.turretAngle) * 1.5;
                 this.vy -= Math.sin(this.turretAngle) * 1.5;
-
                 this.shootCooldown = this.maxShootCooldown;
             }
 
@@ -749,7 +706,6 @@
                     particles.push(new Particle(this.x, this.y, col, 8 + Math.random() * 8, 0.9, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8));
                 }
 
-                // Award points to remote attacker
                 if (attackerId && attackerId !== userId) {
                     awardKillPointToRemote(attackerId);
                 }
@@ -783,7 +739,6 @@
                 ctx.save();
                 ctx.translate(this.x, this.y);
 
-                // Shield Effect
                 if (this.shieldActive) {
                     ctx.beginPath();
                     ctx.arc(0, 0, this.size + 10, 0, Math.PI * 2);
@@ -795,13 +750,11 @@
                     ctx.shadowBlur = 0;
                 }
 
-                // Base Shadow
                 ctx.beginPath();
                 ctx.arc(0, 0, this.size, 0, Math.PI * 2);
                 ctx.fillStyle = 'rgba(0,0,0,0.4)';
                 ctx.fill();
 
-                // Rotate for treads
                 ctx.save();
                 ctx.rotate(this.angle);
                 ctx.fillStyle = '#1e293b';
@@ -820,7 +773,6 @@
                 }
                 ctx.restore();
 
-                // Main body
                 ctx.beginPath();
                 ctx.arc(0, 0, this.size - 2, 0, Math.PI * 2);
                 ctx.fillStyle = this.color;
@@ -834,7 +786,6 @@
                 ctx.fillStyle = 'rgba(255,255,255,0.15)';
                 ctx.fill();
 
-                // Turret
                 ctx.save();
                 ctx.rotate(this.turretAngle);
                 ctx.fillStyle = '#475569';
@@ -853,7 +804,6 @@
                 ctx.stroke();
                 ctx.restore();
 
-                // Health bar above
                 const barW = 40;
                 const barH = 5;
                 ctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -861,7 +811,6 @@
                 ctx.fillStyle = this.health > 40 ? '#10b981' : '#f43f5e';
                 ctx.fillRect(-barW/2, -this.size - 14, barW * (this.health / this.maxHealth), barH);
 
-                // Name tag
                 ctx.font = 'bold 11px sans-serif';
                 ctx.fillStyle = this.isLocal ? '#a7f3d0' : '#cbd5e1';
                 ctx.textAlign = 'center';
@@ -869,7 +818,6 @@
 
                 ctx.restore();
 
-                // Chat bubble
                 if (this.chatTimer > 0 && this.chatMsg) {
                     ctx.save();
                     ctx.font = 'bold 13px sans-serif';
@@ -911,7 +859,7 @@
                 this.vy = Math.sin(angle) * this.speed;
 
                 this.bounceCount = 0;
-                this.maxBounces = 2; // Bounces 2 times, dies on 3rd hit
+                this.maxBounces = 2; 
                 this.life = 200;
                 this.isDead = false;
             }
@@ -928,7 +876,7 @@
                 let nextX = this.x + this.vx;
                 let nextY = this.y + this.vy;
 
-                // Bullet reflection against solid obstacles
+                // Wall Collision & Reflection
                 for (let obs of obstacles) {
                     if (checkPointCollision(nextX, nextY, obs)) {
                         const hitLeft = (this.x <= obs.x && nextX >= obs.x);
@@ -959,19 +907,17 @@
                     }
                 }
 
-                // Bullet reflection / damage on crates (crates are destructible obstacles)
+                // Crate Damage
                 for (let cr of crates) {
                     if (checkPointCollision(nextX, nextY, cr)) {
                         cr.health -= 25;
                         playSound('hit');
                         
-                        // Break crate visual details
                         for(let i=0; i<5; i++) {
                             particles.push(new Particle(this.x, this.y, '#854d0e', 4, 0.3, (Math.random()-0.5)*4, (Math.random()-0.5)*4));
                         }
 
                         if (cr.health <= 0) {
-                            // Drop Power-up on Firestore only if I am the host (saves duplicate powerup creation)
                             const activeIds = Object.keys(remoteTanks);
                             activeIds.push(userId);
                             activeIds.sort();
@@ -982,7 +928,6 @@
                                 const p = new PowerUp(pId, cr.x + 25, cr.y + 25, randomType);
                                 syncPowerupToFirestore(p);
                             }
-                            // Delete Crate from layout
                             deleteCrateFromFirestore(cr.id);
                         }
 
@@ -994,9 +939,8 @@
                 this.x = nextX;
                 this.y = nextY;
 
-                // Damage check
+                // Live Real-time Hit Sync (Local Bullet to Remote Tank Damage)
                 if (this.ownerId === userId) {
-                    // Check remote player collision
                     for (let botId in remoteTanks) {
                         const bot = remoteTanks[botId];
                         if (bot && !bot.isDead) {
@@ -1009,7 +953,7 @@
                         }
                     }
 
-                    // Check Self Collision (Asli Tiny Tanks Feature!)
+                    // Self Damage
                     if (localTank && !localTank.isDead) {
                         const dist = Math.hypot(localTank.x - this.x, localTank.y - this.y);
                         if (dist < localTank.size + this.radius) {
@@ -1054,7 +998,6 @@
             }
         }
 
-        // --- Particle Effect Class ---
         class Particle {
             constructor(x, y, color, size, decay, vx, vy) {
                 this.x = x;
@@ -1086,7 +1029,6 @@
             }
         }
 
-        // --- PowerUp Class ---
         class PowerUp {
             constructor(id, x, y, type) {
                 this.id = id;
@@ -1180,7 +1122,6 @@
             }
         }
 
-        // --- Toasts Notifications ---
         function showToast(text, bgColor = 'bg-slate-800') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -1237,10 +1178,9 @@
             });
         }
 
-        // --- FIRESTORE DATABASE SYNC LOGIC (Rule 1 & Rule 2 Compliant) ---
+        // --- FIRESTORE DATABASE SYNC ---
         let currentLobbyId = 'global-arena';
 
-        // 1. Sync Local Player State to Firestore
         async function syncLocalPlayerToFirestore() {
             if (!user || !localTank) return;
             const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'players', userId);
@@ -1266,7 +1206,6 @@
             }
         }
 
-        // 2. Sync Fire Bullet
         async function syncBulletToFirestore(bullet) {
             if (!user) return;
             const bulletDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'bullets', bullet.id);
@@ -1292,7 +1231,6 @@
             } catch (err) {}
         }
 
-        // 3. Trigger Damage to Remote Target
         async function triggerRemotePlayerDamage(remoteId, damageAmount) {
             if (!user) return;
             const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'players', remoteId);
@@ -1313,7 +1251,6 @@
             } catch (err) {}
         }
 
-        // Award points
         async function awardKillPointToRemote(remoteId) {
             if (!user) return;
             const playerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'players', remoteId);
@@ -1328,7 +1265,6 @@
             } catch (err) {}
         }
 
-        // Crates synchronization over firestore
         async function syncCrateToFirestore(crate) {
             if (!user) return;
             const crateDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'crates', crate.id);
@@ -1350,7 +1286,6 @@
             } catch (err) {}
         }
 
-        // Spawn / Sync Powerups
         async function syncPowerupToFirestore(powerup) {
             if (!user) return;
             const powerDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'powerups', powerup.id);
@@ -1373,7 +1308,7 @@
             } catch (err) {}
         }
 
-        // --- Firebase Listeners ---
+        // --- Firebase Snapshots ---
         let unsubPlayers = null;
         let unsubBullets = null;
         let unsubPowerups = null;
@@ -1387,7 +1322,6 @@
 
             document.getElementById('hud-lobby-id').innerText = currentLobbyId;
 
-            // 1. Players Listener
             const playersColRef = collection(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'players');
             unsubPlayers = onSnapshot(playersColRef, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
@@ -1403,7 +1337,7 @@
                                 }
                                 updateHUD();
                             }
-                            if (data.score !== undefined && data.score > localTank.score) {
+                            if (data.score !== undefined && data.score !== localTank.score) {
                                 localTank.score = data.score;
                                 updateHUD();
                             }
@@ -1435,9 +1369,8 @@
                     }
                 });
                 updateLeaderboard();
-            }, (err) => console.error("Players sync err:", err));
+            });
 
-            // 2. Bullets Listener
             const bulletsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'bullets');
             unsubBullets = onSnapshot(bulletsColRef, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
@@ -1457,9 +1390,8 @@
                         }
                     }
                 });
-            }, (err) => console.error(err));
+            });
 
-            // 3. Powerups Listener
             const powerupsColRef = collection(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'powerups');
             unsubPowerups = onSnapshot(powerupsColRef, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
@@ -1475,9 +1407,8 @@
                         powerups = powerups.filter(p => p.id !== pId);
                     }
                 });
-            }, (err) => console.error(err));
+            });
 
-            // 4. Crates/Destructibles Listener
             const cratesColRef = collection(db, 'artifacts', appId, 'public', 'data', 'lobbies', currentLobbyId, 'crates');
             unsubCrates = onSnapshot(cratesColRef, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
@@ -1493,7 +1424,7 @@
                         crates = crates.filter(c => c.id !== cId);
                     }
                 });
-            }, (err) => console.error(err));
+            });
         }
 
         window.addEventListener('beforeunload', () => {
@@ -1522,17 +1453,14 @@
             const spawnPos = getRandomSpawnPos();
             localTank = new Tank(userId, spawnPos.x, spawnPos.y, playerName, playerColor, true);
 
-            // Initial online registering
             syncLocalPlayerToFirestore();
             startLobbySubscription();
 
-            // Setup Host responsibilities (spawning initial Crates layout)
             setTimeout(() => {
                 const activeIds = Object.keys(remoteTanks);
                 activeIds.push(userId);
                 activeIds.sort();
                 if (activeIds[0] === userId) {
-                    // I am the host! Let's spawn 12 Crates across the map randomly
                     for (let i = 0; i < 12; i++) {
                         const cratePos = getRandomSpawnPos();
                         const cId = `crate-${Date.now()}-${i}`;
@@ -1542,7 +1470,6 @@
                 }
             }, 1000);
 
-            // Periodically respawn crates if they are depleted
             if (window.crateRespawnInterval) clearInterval(window.crateRespawnInterval);
             window.crateRespawnInterval = setInterval(() => {
                 if (gameState === 'playing' && crates.length < 5) {
@@ -1560,18 +1487,13 @@
 
             gameState = 'playing';
             updateHUD();
-            showToast("Online Arena Mein Swagat Hai! 🚀", "bg-indigo-600");
+            showToast("Arena Mein Swagat Hai! 🚀", "bg-indigo-600");
         }
 
-        document.getElementById('start-btn').addEventListener('click', () => {
-            startGame();
-        });
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('respawn-btn').addEventListener('click', startGame);
 
-        document.getElementById('respawn-btn').addEventListener('click', () => {
-            startGame();
-        });
-
-        // --- Player Emoji Pickers Menu --
+        // Emoji System
         const emojiMenuBtn = document.getElementById('emoji-menu-btn');
         const emojiPicker = document.getElementById('emoji-picker');
         emojiMenuBtn.addEventListener('click', (e) => {
@@ -1593,7 +1515,7 @@
             emojiPicker.classList.add('hidden');
         });
 
-        // --- MAIN GAME LOOP ---
+        // --- Render Loop ---
         function gameLoop() {
             requestAnimationFrame(gameLoop);
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1612,10 +1534,7 @@
                     remoteBullets[bId].update();
                 }
 
-                // Tread marks logic (decay)
-                treadMarks.forEach(tm => {
-                    tm.life--;
-                });
+                treadMarks.forEach(tm => { tm.life--; });
                 treadMarks = treadMarks.filter(tm => tm.life > 0);
 
                 particles.forEach(p => p.update());
@@ -1624,13 +1543,11 @@
                 powerups.forEach(p => p.update());
             }
 
-            // 2. Render View with Camera Focus
             ctx.save();
             if (localTank) {
                 ctx.translate(canvas.width / 2 - localTank.x, canvas.height / 2 - localTank.y);
             }
 
-            // Draw grid
             ctx.strokeStyle = '#1e293b';
             ctx.lineWidth = 1;
             const gridSize = 100;
@@ -1647,19 +1564,16 @@
                 ctx.stroke();
             }
 
-            // Draw Persistent Tread Marks
             treadMarks.forEach(tm => {
                 ctx.save();
                 ctx.translate(tm.x, tm.y);
                 ctx.rotate(tm.angle);
                 ctx.fillStyle = `rgba(0, 0, 0, ${tm.life / 600})`;
-                // Left & Right tracks
                 ctx.fillRect(-10, -16, 20, 3);
                 ctx.fillRect(-10, 13, 20, 3);
                 ctx.restore();
             });
 
-            // Draw Obstacles / Walls
             obstacles.forEach(obs => {
                 ctx.save();
                 ctx.strokeStyle = '#475569';
@@ -1667,43 +1581,31 @@
                 ctx.fillStyle = '#0f172a';
                 ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
                 ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
-                
-                ctx.strokeStyle = '#334155';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(obs.x + 4, obs.y + 4, obs.w - 8, obs.h - 8);
                 ctx.restore();
             });
 
-            // Draw Crates
             crates.forEach(cr => cr.draw(ctx));
-
-            // Draw Powerups
             powerups.forEach(p => p.draw(ctx));
-
-            // Draw Local Bullets
             localBullets.forEach(bullet => bullet.draw(ctx));
 
-            // Draw Remote Bullets
             for (let bId in remoteBullets) {
                 remoteBullets[bId].draw(ctx);
             }
 
-            // Draw Remote Tanks
             for (let id in remoteTanks) {
                 remoteTanks[id].draw(ctx);
             }
 
-            // Draw Local Tank
             if (localTank) localTank.draw(ctx);
-
-            // Draw Particles
             particles.forEach(p => p.draw(ctx));
 
-            ctx.restore(); // Restore Camera
+            ctx.restore(); 
         }
 
-        // Start
         gameLoop();
     </script>
 </body>
 </html>
+
+
+```
